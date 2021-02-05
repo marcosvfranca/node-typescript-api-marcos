@@ -1,18 +1,18 @@
-import AuthService from "@src/services/auth";
-import { authMiddleware } from "../auth";
+import AuthService from '@src/services/auth';
+import { authMiddleware } from '../auth';
 
-describe('AuthMiddleware',  () => {
+describe('AuthMiddleware', () => {
   it('Should verify a JWT token and call the next middleware', () => {
     const jwtToken = AuthService.generateToken({ data: 'fake' });
     const reqFake = {
       headers: {
         'x-access-token': jwtToken,
-      }
+      },
     };
 
     const resFake = {};
     const nextFake = jest.fn();
-    authMiddleware(reqFake, resFake , nextFake);
+    authMiddleware(reqFake, resFake, nextFake);
     expect(nextFake).toHaveBeenCalled();
   });
 
@@ -20,7 +20,7 @@ describe('AuthMiddleware',  () => {
     const reqFake = {
       headers: {
         'x-access-token': 'invalid-token',
-      }
+      },
     };
     const sendMock = jest.fn();
     const resFake = {
@@ -29,7 +29,7 @@ describe('AuthMiddleware',  () => {
       })),
     };
     const nextFake = jest.fn();
-    authMiddleware(reqFake, resFake as object, nextFake);
+    authMiddleware(reqFake, resFake as Record<string, unknown>, nextFake);
     expect(resFake.status).toHaveBeenCalledWith(401);
     expect(sendMock).toHaveBeenCalledWith({
       code: 401,
@@ -38,7 +38,7 @@ describe('AuthMiddleware',  () => {
   });
   it('should return UNAUTHORIZED middleware if theres no token', () => {
     const reqFake = {
-      headers: {}
+      headers: {},
     };
     const sendMock = jest.fn();
     const resFake = {
@@ -47,12 +47,11 @@ describe('AuthMiddleware',  () => {
       })),
     };
     const nextFake = jest.fn();
-    authMiddleware(reqFake, resFake as object, nextFake);
+    authMiddleware(reqFake, resFake as Record<string, unknown>, nextFake);
     expect(resFake.status).toHaveBeenCalledWith(401);
     expect(sendMock).toHaveBeenCalledWith({
       code: 401,
       error: 'jwt must be provided',
     });
   });
-
 });

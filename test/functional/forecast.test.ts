@@ -1,8 +1,8 @@
-import { Beach, BeachPosition } from "@src/models/beach";
+import { Beach, GeoPosition } from '@src/models/beach';
 import nock from 'nock';
 import stormGlassWeather3HoursFixtures from '@test/fixtures/stormflass_weather_3_hours.json';
-import { User } from "@src/models/user";
-import AuthService from "@src/services/auth";
+import { User } from '@src/models/user';
+import AuthService from '@src/services/auth';
 
 describe('Beach forecast functional tests', () => {
   const defaultUser = {
@@ -13,14 +13,14 @@ describe('Beach forecast functional tests', () => {
   let token: string;
   beforeEach(async () => {
     await Beach.deleteMany({});
-    await User.deleteMany({});   
+    await User.deleteMany({});
     const user = await new User(defaultUser).save();
     const defaultBeach = {
       lat: -33.792726,
       lng: 151.289824,
       name: 'Manly',
-      position: BeachPosition.E,
-      user: user.id
+      position: GeoPosition.E,
+      user: user.id,
     };
     await new Beach(defaultBeach).save();
     token = AuthService.generateToken(user.toJSON());
@@ -30,7 +30,7 @@ describe('Beach forecast functional tests', () => {
     nock('https://api.stormglass.io:443', {
       encodedQueryParams: true,
       reqheaders: {
-        Authorization: (): boolean => true
+        Authorization: (): boolean => true,
       },
     })
       .defaultReplyHeaders({ 'access-control-allow-origin': '*' })
@@ -39,11 +39,14 @@ describe('Beach forecast functional tests', () => {
         lat: -33.792726,
         lng: 151.289824,
         params: /(.*)/,
-        source: 'noaa'
+        source: 'noaa',
+        end: /(.*)/,
       })
       .reply(200, stormGlassWeather3HoursFixtures);
 
-    const { body, status } = await global.testRequest.get('/forecast').set({ 'x-access-token': token });
+    const { body, status } = await global.testRequest
+      .get('/forecast')
+      .set({ 'x-access-token': token });
     expect(status).toBe(200);
     expect(body).toEqual([
       {
@@ -54,7 +57,7 @@ describe('Beach forecast functional tests', () => {
             lng: 151.289824,
             name: 'Manly',
             position: 'E',
-            rating: 1,
+            rating: 2,
             swellDirection: 64.26,
             swellHeight: 0.15,
             swellPeriod: 3.89,
@@ -62,7 +65,7 @@ describe('Beach forecast functional tests', () => {
             waveDirection: 231.38,
             waveHeight: 0.47,
             windDirection: 299.45,
-            windSpeed: 100
+            windSpeed: 100,
           },
         ],
       },
@@ -74,7 +77,7 @@ describe('Beach forecast functional tests', () => {
             lng: 151.289824,
             name: 'Manly',
             position: 'E',
-            rating: 1,
+            rating: 2,
             swellDirection: 123.41,
             swellHeight: 0.21,
             swellPeriod: 3.67,
@@ -82,7 +85,7 @@ describe('Beach forecast functional tests', () => {
             waveDirection: 232.12,
             waveHeight: 0.46,
             windDirection: 310.48,
-            windSpeed: 100
+            windSpeed: 100,
           },
         ],
       },
@@ -94,7 +97,7 @@ describe('Beach forecast functional tests', () => {
             lng: 151.289824,
             name: 'Manly',
             position: 'E',
-            rating: 1,
+            rating: 2,
             swellDirection: 182.56,
             swellHeight: 0.28,
             swellPeriod: 3.44,
@@ -105,10 +108,10 @@ describe('Beach forecast functional tests', () => {
             windSpeed: 100,
           },
         ],
-      }
+      },
     ]);
   });
-  
+
   it('should return 500 if something goes wrong during the processing', async () => {
     nock('https://api.stormglass.io:443', {
       encodedQueryParams: true,
@@ -121,7 +124,9 @@ describe('Beach forecast functional tests', () => {
       .query({ lat: '-33.792726', lng: '151.289824' })
       .replyWithError('Something went wrong');
 
-    const { status } = await global.testRequest.get(`/forecast`).set({ 'x-access-token': token });
+    const { status } = await global.testRequest
+      .get(`/forecast`)
+      .set({ 'x-access-token': token });
 
     expect(status).toBe(500);
   });

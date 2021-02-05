@@ -1,39 +1,58 @@
-import { Controller, Post } from '@overnightjs/core';
+import { Controller, Get, Middleware, Post } from '@overnightjs/core';
 import { User } from '@src/models/user';
 import { Request, Response } from 'express';
 import { BaseController } from '@src/controllers/index';
 import AuthService from '@src/services/auth';
+import { authMiddleware } from '@src/middlewares/auth';
 
 @Controller('users')
 export class UsersController extends BaseController {
   @Post('')
   public async create(req: Request, res: Response): Promise<void> {
-    try {  
+    try {
       const user = new User(req.body);
       const newUser = await user.save();
-      res.status(201).send(newUser); 
+      res.status(201).send(newUser);
     } catch (error) {
       this.sendCreateUpdateErrorResponse(res, error);
     }
   }
 
   @Post('authenticate')
-  public async authenticate(req: Request, res: Response): Promise<Response | undefined> {
+  public async authenticate(
+    req: Request,
+    res: Response
+  ): Promise<Response | undefined> {
     const { email, password } = req.body;
     const user = await User.findOne({ email: email });
     if (!user) {
-      return res.status(401).send({
+      return this.sendErrorResponse(res, {
         code: 401,
-        errror: 'User not found'
+        message: 'User not found',
       });
     }
     if (!(await AuthService.comparePasswords(password, user.password))) {
-      return res.status(401).send({
+      return this.sendErrorResponse(res, {
         code: 401,
-        error: 'Password does not match!',
+        message: 'Password does not match!',
       });
     }
     const token = AuthService.generateToken(user.toJSON());
-    return res.status(200).send({ token: token });
+    //return res.status(200).send({ token: token });
+    return res.send({ ...user.toJSON(), ...{ token } });
+  }
+
+  @Get('me')
+  @Middleware(authMiddleware)
+  public async me(req: Request, res: Response): Promise<Response> {
+    const email = req.decoded ? req.decoded.email : undefined;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return this.sendErrorResponse(res, {
+        code: 404,
+        message: 'User not Found!',
+      });
+    }
+    return res.send({ user });
   }
 }

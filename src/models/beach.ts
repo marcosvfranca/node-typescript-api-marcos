@@ -1,6 +1,6 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
 
-export enum BeachPosition {
+export enum GeoPosition {
   S = 'S',
   E = 'E',
   W = 'W',
@@ -10,7 +10,7 @@ export enum BeachPosition {
 export interface Beach {
   _id?: string;
   name: string;
-  position: BeachPosition;
+  position: GeoPosition;
   lat: number;
   lng: number;
   user: string;
@@ -23,8 +23,10 @@ const schema = new mongoose.Schema(
     name: { type: String, required: true },
     position: { type: String, required: true },
     user: {
-      type: Schema.Types.ObjectId, ref: 'User', required: true
-    }
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
   },
   {
     toJSON: {
